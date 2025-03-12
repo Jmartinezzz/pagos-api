@@ -40,6 +40,7 @@ public class StudentController {
     public List<Student> studentsList() {
         return studentRepo.findAll();
     }
+
     @PostMapping()
     public ResponseEntity<?> save(@Valid @RequestBody Student student, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
