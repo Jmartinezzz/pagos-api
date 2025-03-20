@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -35,10 +38,16 @@ public class StudentController {
 
     @Autowired
     private StudentService studentService;
-    
+
     @GetMapping()
     public List<Student> studentsList() {
         return studentRepo.findAll();
+    }
+
+    @GetMapping("/paginados")
+    public Page<Student> studentsListPaginated(@RequestParam int page, @RequestParam int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return studentRepo.findAll(pageable);
     }
 
     @PostMapping()
@@ -63,5 +72,5 @@ public class StudentController {
     @GetMapping("/estudiantes-por-programa")
     public List<Student> StudentsByProgram(@RequestParam String programa_id) {
         return studentRepo.findByProgramId(programa_id);
-    } 
+    }
 }

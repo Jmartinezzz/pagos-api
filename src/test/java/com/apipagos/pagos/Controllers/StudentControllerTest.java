@@ -1,31 +1,37 @@
 package com.apipagos.pagos.Controllers;
 
-
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-
-import static org.hamcrest.Matchers.nullValue;
-import org.springframework.http.MediaType;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.apipagos.pagos.Entities.Student;
@@ -40,7 +46,7 @@ public class StudentControllerTest {
 
     @Mock
     private StudentRepository studentRepo;
-    
+
     @Mock
     private StudentService studentService;
 
@@ -57,74 +63,90 @@ public class StudentControllerTest {
         // algunos estudiantes
         studentList = Arrays.asList(
                 new Student(
-                    "cod1",
-                    "Juan",
-                    "camero",
-                    "123",
-                    "aws",
-                    null
-                ), 
+                        "cod1",
+                        "Juan",
+                        "camero",
+                        "123",
+                        "aws",
+                        null),
                 new Student(
-                    "cod2", 
-                    "Maria",
-                    "gaviria",
-                    "124",
-                    "aws2", 
-                    null
-                ),
+                        "cod2",
+                        "Maria",
+                        "gaviria",
+                        "124",
+                        "aws2",
+                        null),
                 new Student(
-                    "cod3",
-                    "Pedro",
-                    "Perez",
-                    "125",
-                    "aws",
-                    null
-                )
-            );
+                        "cod3",
+                        "Pedro",
+                        "Perez",
+                        "125",
+                        "aws",
+                        null));
     }
 
     @Test
     @DisplayName("students list test")
-    public void testStudentsList() throws Exception {    
+    public void testStudentsList() throws Exception {
         when(studentRepo.findAll()).thenReturn(studentList); // Simula la respuesta del repositorio
 
         mockMvc.perform(get("/api/estudiantes"))
-            .andExpect(status().isOk()) // Verificamos que el estado HTTP sea 200
-            .andExpect(jsonPath("$[0].id").value("cod1"))
-            .andExpect(jsonPath("$[0].nombre").value("Juan"))
-            .andExpect(jsonPath("$[0].apellido").value("camero"))
-            .andExpect(jsonPath("$[0].codigo").value("123"))
-            .andExpect(jsonPath("$[0].programId").value("aws"))
-            .andExpect(jsonPath("$[0].foto").value(nullValue()))
-            .andExpect(jsonPath("$[1].id").value("cod2"))
-            .andExpect(jsonPath("$[1].codigo").value("124"))
-            .andExpect(jsonPath("$[1].nombre").value("Maria"))
-            .andExpect(jsonPath("$[1].apellido").value("gaviria"))
-            .andExpect(jsonPath("$[1].programId").value("aws2"))
-            .andExpect(jsonPath("$[1].foto").value(nullValue()));
+                .andExpect(status().isOk()) // Verificamos que el estado HTTP sea 200
+                .andExpect(jsonPath("$[0].id").value("cod1"))
+                .andExpect(jsonPath("$[0].nombre").value("Juan"))
+                .andExpect(jsonPath("$[0].apellido").value("camero"))
+                .andExpect(jsonPath("$[0].codigo").value("123"))
+                .andExpect(jsonPath("$[0].programId").value("aws"))
+                .andExpect(jsonPath("$[0].foto").value(nullValue()))
+                .andExpect(jsonPath("$[1].id").value("cod2"))
+                .andExpect(jsonPath("$[1].codigo").value("124"))
+                .andExpect(jsonPath("$[1].nombre").value("Maria"))
+                .andExpect(jsonPath("$[1].apellido").value("gaviria"))
+                .andExpect(jsonPath("$[1].programId").value("aws2"))
+                .andExpect(jsonPath("$[1].foto").value(nullValue()));
 
         verify(studentRepo, times(1)).findAll();
+    }
+
+    @Test
+    @DisplayName("students paginated list test")
+    public void testStudentsListPaginated() throws Exception {
+        Pageable pageable = PageRequest.of(0, 2);
+        List<Student> paginatedList = studentList.subList(0, 2); // Filtra solo los primeros 2 estudiantes
+        Page<Student> studentPage = new PageImpl<>(paginatedList, pageable, paginatedList.size()); // Crea la página con solo 2 elementos
+    
+        when(studentRepo.findAll(pageable)).thenReturn(studentPage);
+
+        mockMvc.perform(get("/api/estudiantes/paginados")
+                .param("page", "0")
+                .param("size", "2")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()) // Verifica que la respuesta sea 200 OK
+                .andExpect(jsonPath("$.content").isArray()) // Verifica que los resultados sean un arreglo
+                .andExpect(jsonPath("$.content.length()").value(2)); // Verifica longitud
+
+        // Verifica que el repositorio haya sido llamado con los parámetros correctos
+        verify(studentRepo).findAll(pageable);
     }
 
     @Test
     @DisplayName("get a student by his code")
     public void testGetStudentByCode() throws Exception {
         Student student = new Student(
-                "123asder", 
-                "Juan", 
+                "123asder",
+                "Juan",
                 "camero",
                 "123",
                 "aws",
-                null
-            );
+                null);
         when(studentRepo.findByCodigo("123asder"))
-            .thenReturn(student);
+                .thenReturn(student);
 
         mockMvc.perform(get("/api/estudiantes/123asder"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.apellido").value("camero"))
-            .andExpect(jsonPath("$.nombre").value("Juan"));
-        
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.apellido").value("camero"))
+                .andExpect(jsonPath("$.nombre").value("Juan"));
+
         verify(studentRepo, times(1)).findByCodigo("123asder");
     }
 
@@ -132,20 +154,20 @@ public class StudentControllerTest {
     public void testStudentsByProgramFound() throws Exception {
         // Simulamos la respuesta del repositorio
         when(studentRepo.findByProgramId("aws2")).thenReturn(
-            studentList.stream()
-                .filter(student -> "aws2".equals(student.getProgramId()))
-                .collect(Collectors.toList())
-        );
+                studentList.stream()
+                        .filter(student -> "aws2".equals(student.getProgramId()))
+                        .collect(Collectors.toList()));
 
         mockMvc.perform(get("/api/estudiantes/estudiantes-por-programa")
                 .param("programa_id", "aws2"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id").value("cod2"))
-            .andExpect(jsonPath("$[0].nombre").value("Maria"))
-            .andExpect(jsonPath("$[0].codigo").value("124"))
-            .andExpect(jsonPath("$[0].apellido").value("gaviria"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("cod2"))
+                .andExpect(jsonPath("$[0].nombre").value("Maria"))
+                .andExpect(jsonPath("$[0].codigo").value("124"))
+                .andExpect(jsonPath("$[0].apellido").value("gaviria"));
 
-        // Verificar que el método findByProgramId fue llamado con el programa_id correcto
+        // Verificar que el método findByProgramId fue llamado con el programa_id
+        // correcto
         verify(studentRepo, times(1)).findByProgramId("aws2");
     }
 
@@ -153,17 +175,17 @@ public class StudentControllerTest {
     public void testStudentsByProgramNotFound() throws Exception {
         // Simulamos que no se encuentran estudiantes para el programa
         when(studentRepo.findByProgramId("aws23")).thenReturn(
-            studentList.stream()
-                .filter(student -> "aws23".equals(student.getProgramId()))
-                .collect(Collectors.toList())
-        );
+                studentList.stream()
+                        .filter(student -> "aws23".equals(student.getProgramId()))
+                        .collect(Collectors.toList()));
 
         mockMvc.perform(get("/api/estudiantes/estudiantes-por-programa")
                 .param("programa_id", "aws23"))
-            .andExpect(status().isOk()) // El status sigue siendo OK porque la lista vacía es válida
-            .andExpect(content().json("[]")); // Esperamos que la respuesta sea una lista vacía
+                .andExpect(status().isOk()) // El status sigue siendo OK porque la lista vacía es válida
+                .andExpect(content().json("[]")); // Esperamos que la respuesta sea una lista vacía
 
-        // Verificar que el método findByProgramId fue llamado con el programa_id correcto
+        // Verificar que el método findByProgramId fue llamado con el programa_id
+        // correcto
         verify(studentRepo, times(1)).findByProgramId("aws23");
     }
 
@@ -174,15 +196,16 @@ public class StudentControllerTest {
         when(studentService.save(any(Student.class))).thenReturn(validStudent);
 
         mockMvc.perform(post("/api/estudiantes")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"id\":\"cod5\",\"nombre\":\"Ernest\",\"apellido\":\"galindo\",\"codigo\":\"128\",\"programId\":\"aws\"}"))
-            .andExpect(status().isCreated()) // Expect HTTP 201
-            .andExpect(jsonPath("$.id").value("cod5"))
-            .andExpect(jsonPath("$.nombre").value("Ernest"))
-            .andExpect(jsonPath("$.apellido").value("galindo"))
-            .andExpect(jsonPath("$.codigo").value("128"))
-            .andExpect(jsonPath("$.programId").value("aws"))
-            .andDo(print());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                        "{\"id\":\"cod5\",\"nombre\":\"Ernest\",\"apellido\":\"galindo\",\"codigo\":\"128\",\"programId\":\"aws\"}"))
+                .andExpect(status().isCreated()) // Expect HTTP 201
+                .andExpect(jsonPath("$.id").value("cod5"))
+                .andExpect(jsonPath("$.nombre").value("Ernest"))
+                .andExpect(jsonPath("$.apellido").value("galindo"))
+                .andExpect(jsonPath("$.codigo").value("128"))
+                .andExpect(jsonPath("$.programId").value("aws"))
+                .andDo(print());
     }
 
     @Test
@@ -190,11 +213,11 @@ public class StudentControllerTest {
         String invalidStudentJson = "{\"id\":\"cod10\",\"apellido\":\"Camero\",\"codigo\":\"113\",\"programId\":\"aws\"}";
 
         mockMvc.perform(post("/api/estudiantes")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(invalidStudentJson))
-            .andExpect(status().isBadRequest()) // Expect HTTP 400
-            .andExpect(jsonPath("$.nombre").value("El nombre es obligatorio"))
-            .andDo(print());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(invalidStudentJson))
+                .andExpect(status().isBadRequest()) // Expect HTTP 400
+                .andExpect(jsonPath("$.nombre").value("El nombre es obligatorio"))
+                .andDo(print());
     }
 
 }
