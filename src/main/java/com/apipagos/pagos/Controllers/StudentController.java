@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.apipagos.pagos.Entities.Student;
 import com.apipagos.pagos.Repositories.StudentRepository;
+import com.apipagos.pagos.Services.EmailProducer;
 import com.apipagos.pagos.Services.StudentService;
 
 import jakarta.validation.Valid;
@@ -38,6 +39,9 @@ public class StudentController {
 
     @Autowired
     private StudentService studentService;
+
+    @Autowired
+    private EmailProducer emailProducer;
 
     @GetMapping()
     public List<Student> studentsList() {
@@ -61,7 +65,14 @@ public class StudentController {
 
             return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(studentService.save(student), HttpStatus.CREATED);
+
+        // Guardar el estudiante
+        Student savedStudent = studentService.save(student);
+
+        // Llamar a EmailProducer para enviar el mensaje a RabbitMQ
+        emailProducer.sendEmailMessage("admin@admin.com", savedStudent.getNombre());
+
+        return new ResponseEntity<>(savedStudent, HttpStatus.CREATED);
     }
 
     @GetMapping("{codigo}")
