@@ -2,6 +2,7 @@ package com.apipagos.pagos.Controllers;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.apipagos.pagos.Entities.Student;
 import com.apipagos.pagos.Repositories.StudentRepository;
+import com.apipagos.pagos.Services.EmailProducer;
 import com.apipagos.pagos.Services.StudentService;
 
 // @WebMvcTest(StudentController.class)
@@ -49,6 +51,9 @@ public class StudentControllerTest {
 
     @Mock
     private StudentService studentService;
+
+    @Mock
+    private EmailProducer emailProducer;
 
     @InjectMocks
     private StudentController studentController;
@@ -206,6 +211,9 @@ public class StudentControllerTest {
                 .andExpect(jsonPath("$.codigo").value("128"))
                 .andExpect(jsonPath("$.programId").value("aws"))
                 .andDo(print());
+        
+        verify(emailProducer, times(1)).sendEmailMessage(eq("admin@admin.com"), eq("Ernest"));
+
     }
 
     @Test

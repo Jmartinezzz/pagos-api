@@ -40,6 +40,7 @@ public class EmailConsumer {
     private void sendEmail(String to, String studentName) {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setTo(to);  // Establecer el destinatario dinámico
+        mailMessage.setFrom("your-test@test.com");
         mailMessage.setSubject("Nuevo Estudiante Registrado");
         mailMessage.setText("Se ha registrado un nuevo estudiante: " + studentName);
 
