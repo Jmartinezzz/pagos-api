@@ -1,5 +1,11 @@
 package com.apipagos.pagos.Entities;
 
+import java.util.Collection;
+import java.util.Collections;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -17,7 +23,7 @@ import jakarta.persistence.GenerationType;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,5 +37,15 @@ public class User {
 
     @Column(nullable = false)
     private String password;
+
+    @Override
+    public String getUsername() {
+        return email; // Usamos el email como nombre de usuario
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.emptyList(); // Por ahora sin roles
+    }
 
 }
